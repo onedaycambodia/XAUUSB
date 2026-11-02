@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="km">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XAUUSD Analyzer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root{--bg:#0e0f12;--card:#17191f;--line:#262a33;--text:#e8e6e1;--muted:#8b8f99;--gold:#d4af37;--buy:#2ebd85;--sell:#f6465d;--neutral:#8b8f99}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans Khmer",sans-serif;line-height:1.5}
+  .wrap{max-width:960px;margin:0 auto;padding:16px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  h1{margin:0;font-size:20px;color:var(--gold);letter-spacing:.5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .price{font-size:34px;font-weight:700}
+  .chg{font-size:14px;margin-left:8px}
+  .up{color:var(--buy)}.down{color:var(--sell)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:12px}
+  .stat{background:#12141a;border:1px solid var(--line);border-radius:10px;padding:10px}
+  .stat small{color:var(--muted);display:block;font-size:12px}
+  .stat b{font-size:16px}
+  button,select{background:var(--gold);color:#111;border:0;border-radius:10px;padding:10px 16px;font-weight:600;font-size:14px;cursor:pointer}
+  select{background:var(--card);color:var(--text);border:1px solid var(--line)}
+  button:disabled{opacity:.5;cursor:wait}
+  .signal{font-size:28px;font-weight:800}
+  .BUY{color:var(--buy)}.SELL{color:var(--sell)}.NEUTRAL{color:var(--neutral)}
+  .bar{height:8px;background:#12141a;border-radius:6px;overflow:hidden;margin:6px 0 12px}
+  .bar>i{display:block;height:100%;background:var(--gold)}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:3px 0}
+  h3{margin:14px 0 4px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .news a{color:var(--text);text-decoration:none}
+  .news a:hover{color:var(--gold)}
+  .news li{font-size:14px}
+  .news small{color:var(--muted)}
+  .disclaimer{font-size:12px;color:var(--muted);text-align:center;margin-top:20px}
+  .err{color:var(--sell)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>XAUUSD · ការវិភាគមាស</h1>
+    <div style="display:flex;gap:8px">
+      <select id="lang">
+        <option value="Khmer">ខ្មែរ</option>
+        <option value="English">English</option>
+      </select>
+      <button id="go">វិភាគដោយ AI</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div><span class="price" id="price">--</span><span class="chg" id="chg"></span></div>
+    <div class="grid" id="stats"></div>
+  </div>
+
+  <div class="card"><canvas id="chart" height="110"></canvas></div>
+
+  <div class="card" id="aiCard" style="display:none"></div>
+
+  <div class="card news">
+    <h3 style="margin-top:0">ព័ត៌មានថ្មីៗ</h3>
+    <ul id="news"></ul>
+  </div>
+
+  <p class="disclaimer">ព័ត៌មានសម្រាប់ជាឯកសារយោងប៉ុណ្ណោះ មិនមែនជាដំបូន្មានហិរញ្ញវត្ថុទេ។ ការ trade មានហានិភ័យ។</p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let chart;
+
+function esc(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML}
+
+async function loadMarket(){
+  try{
+    const r = await fetch('/api/market');
+    if(!r.ok) throw new Error((await r.json()).detail||r.status);
+    const d = await r.json();
+    const s = d.snapshot;
+    $('price').textContent = '$' + s.price.toLocaleString();
+    $('chg').textContent = (s.change_24h_pct>=0?'+':'') + s.change_24h_pct + '% (24h)';
+    $('chg').className = 'chg ' + (s.change_24h_pct>=0?'up':'down');
+    const items = [['RSI',s.rsi],['MACD',s.macd],['Signal',s.macd_signal],['EMA20',s.ema20],['EMA50',s.ema50],['ATR',s.atr]];
+    $('stats').innerHTML = items.map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join('');
+    drawChart(d.chart);
+    $('news').innerHTML = d.news.map(n=>`<li><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></li>`).join('');
+  }catch(e){
+    $('price').innerHTML = '<span class="err">' + esc(String(e.message||e)) + '</span>';
+  }
+}
+
+function drawChart(c){
+  const ctx = $('chart');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{labels:c.labels,datasets:[
+      {label:'Close',data:c.close,borderColor:'#d4af37',borderWidth:2,pointRadius:0,tension:.2},
+      {label:'EMA20',data:c.ema20,borderColor:'#5b9cf5',borderWidth:1,pointRadius:0,tension:.2},
+      {label:'EMA50',data:c.ema50,borderColor:'#b07cf5',borderWidth:1,pointRadius:0,tension:.2}
+    ]},
+    options:{responsive:true,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{color:'#8b8f99'}}},
+      scales:{x:{ticks:{color:'#8b8f99',maxTicksLimit:8},grid:{color:'#1f222a'}},
+              y:{ticks:{color:'#8b8f99'},grid:{color:'#1f222a'}}}}
+  });
+}
+
+async function runAI(){
+  const btn = $('go'), card = $('aiCard');
+  btn.disabled = true; btn.textContent = 'កំពុងវិភាគ...';
+  card.style.display = 'block'; card.innerHTML = '<span style="color:var(--muted)">កំពុងអានព័ត៌មាន និងទិន្នន័យ...</span>';
+  try{
+    const r = await fetch('/api/analyze?lang=' + encodeURIComponent($('lang').value), {method:'POST'});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail||r.status);
+    const lv = d.levels||{};
+    card.innerHTML = `
+      <div class="signal ${esc(d.signal)}">${esc(d.signal)}</div>
+      <small style="color:var(--muted)">Confidence ${esc(d.confidence)}%</small>
+      <div class="bar"><i style="width:${Number(d.confidence)||0}%"></i></div>
+      <p>${esc(d.summary)}</p>
+      <h3>កត្តាសំខាន់</h3><ul>${(d.drivers||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+      <h3>ហានិភ័យ</h3><ul>${(d.risks||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+      <h3>កម្រិតតម្លៃ</h3>
+      <div class="grid">
+        <div class="stat"><small>Support</small><b>${esc(lv.support)}</b></div>
+        <div class="stat"><small>Resistance</small><b>${esc(lv.resistance)}</b></div>
+      </div>`;
+  }catch(e){
+    card.innerHTML = '<span class="err">' + esc(String(e.message||e)) + '</span>';
+  }
+  btn.disabled = false; btn.textContent = 'វិភាគដោយ AI';
+}
+
+$('go').addEventListener('click', runAI);
+loadMarket();
+setInterval(loadMarket, 60000);
+</script>
+</body>
+</html>

@@ -38,7 +38,10 @@ def _guard(fn, *a, **k):
     try:
         return fn(*a, **k)
     except MarketDataError as e:
-        raise HTTPException(503, f"បញ្ហាទិន្នន័យទីផ្សារ: {e}")
+        hint = "" if CFG.twelvedata_key else (
+            " ‒ ដំណោះស្រាយ: ដាក់ TWELVEDATA_API_KEY ក្នុង Railway Variables "
+            "(Yahoo ច្រើនរារាំង server cloud)")
+        raise HTTPException(503, f"បញ្ហាទិន្នន័យទីផ្សារ: {e}{hint}")
     except HTTPException:
         raise
     except Exception:  # noqa: BLE001

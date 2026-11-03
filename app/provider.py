@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import requests
+from urllib.parse import quote
 
 from .config import TF_SECONDS, TIMEFRAMES, Settings
 
@@ -112,8 +113,23 @@ def _retry(fn, retries: int, delay: float = 0.7):
 
 # ---------------------------------------------------------------- fetchers
 TD_INTERVAL = {"M5": "5min", "M15": "15min", "M30": "30min", "H1": "1h", "H4": "4h", "D1": "1day"}
-YF_MAP = {"M5": ("5m", "30d"), "M15": ("15m", "30d"), "M30": ("30m", "30d"),
-          "H1": ("60m", "180d"), "D1": ("1d", "3y")}
+YF_MAP = {"M5": ("5m", "1mo"), "M15": ("15m", "1mo"), "M30": ("30m", "1mo"),
+          "H1": ("60m", "6mo"), "D1": ("1d", "2y")}
+
+
+def parse_yahoo_chart(js: dict) -> pd.DataFrame:
+    """បកស្រាយ JSON ពី Yahoo chart API (query1.finance.yahoo.com/v8/finance/chart)។"""
+    chart = (js or {}).get("chart") or {}
+    res = chart.get("result")
+    if not res:
+        raise MarketDataError(f"Yahoo chart API: {chart.get('error') or 'គ្មានលទ្ធផល'}")
+    r = res[0]
+    ts = r.get("timestamp") or []
+    q = ((r.get("indicators") or {}).get("quote") or [{}])[0]
+    if not ts or not q.get("close"):
+        raise MarketDataError("Yahoo chart API: គ្មាន candle")
+    return pd.DataFrame({k: q.get(k) for k in ("open", "high", "low", "close", "volume")},
+                        index=pd.to_datetime(ts, unit="s", utc=True))
 
 
 class MarketData:
@@ -168,18 +184,40 @@ class MarketData:
         return d
 
     def _yahoo_download(self, yf, interval, period) -> pd.DataFrame:
-        def call():
-            df = yf.download(self.cfg.yahoo_symbol, interval=interval, period=period,
-                             auto_adjust=False, progress=False, timeout=self.cfg.http_timeout)
+        """សាកល្បង 3 វិធី: yf.download → Ticker.history → Yahoo chart API ផ្ទាល់។"""
+        sym, errors = self.cfg.yahoo_symbol, []
+
+        def utc(df):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
             if df is None or len(df) == 0:
-                raise MarketDataError("Yahoo Finance មិនបានផ្តល់ទិន្នន័យ")
+                raise MarketDataError("បានទទេ")
+            idx = pd.to_datetime(df.index)
+            df.index = idx.tz_localize("UTC") if idx.tz is None else idx.tz_convert("UTC")
             return df
-        df = _retry(call, self.cfg.http_retries)
-        idx = pd.to_datetime(df.index)
-        df.index = idx.tz_localize("UTC") if idx.tz is None else idx.tz_convert("UTC")
-        return df
+
+        def m_download():
+            return utc(yf.download(sym, interval=interval, period=period, auto_adjust=False,
+                                   progress=False, timeout=self.cfg.http_timeout))
+
+        def m_history():
+            return utc(yf.Ticker(sym).history(interval=interval, period=period, auto_adjust=False,
+                                              timeout=self.cfg.http_timeout))
+
+        def m_chart():
+            r = requests.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{quote(sym)}",
+                             params={"interval": interval, "range": period},
+                             headers={"User-Agent": "Mozilla/5.0"}, timeout=self.cfg.http_timeout)
+            r.raise_for_status()
+            return parse_yahoo_chart(r.json())
+
+        for name, fn in (("yf.download", m_download), ("Ticker.history", m_history), ("chart API", m_chart)):
+            try:
+                return _retry(fn, min(1, self.cfg.http_retries), delay=0.5)
+            except Exception as e:  # noqa: BLE001
+                log.warning("yahoo %s %s/%s failed: %r", name, interval, period, e)
+                errors.append(f"{name}: {str(e)[:80] or type(e).__name__}")
+        raise MarketDataError("Yahoo Finance មិនផ្តល់ទិន្នន័យ (" + " | ".join(errors) + ")")
 
     # -- raw with provider fallback
     def _raw(self, tf: str, provider: str | None = None):

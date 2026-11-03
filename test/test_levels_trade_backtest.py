@@ -227,3 +227,19 @@ class TestBacktest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestYahooChartParser(unittest.TestCase):
+    def test_parse_with_nulls_then_clean(self):
+        from app.provider import MarketDataError, clean_candles, parse_yahoo_chart
+        js = {"chart": {"result": [{"timestamp": [1761739200, 1761742800, 1761746400],
+              "indicators": {"quote": [{"open": [3000.0, None, 3002.0], "high": [3001.0, None, 3004.0],
+                                        "low": [2999.0, None, 3001.0], "close": [3000.5, None, 3003.0],
+                                        "volume": [0, None, 0]}]}}], "error": None}}
+        df = parse_yahoo_chart(js)
+        clean, dropped = clean_candles(df)
+        self.assertEqual((len(clean), dropped), (2, 1))
+        self.assertEqual(str(clean.index.tz), "UTC")
+        for bad in ({"chart": {"result": None, "error": {"code": "Not Found"}}}, {}, {"chart": {"result": [{"timestamp": []}]}}):
+            with self.assertRaises(MarketDataError):
+                parse_yahoo_chart(bad)

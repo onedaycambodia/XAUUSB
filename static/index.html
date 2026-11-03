@@ -195,7 +195,7 @@ const TFS = ['M5','M15','M30','H1','H4','D1'];
 const SIG = {BUY:'ទិញ', SELL:'លក់', NEUTRAL:'អព្យាក្រឹត'};
 const COL = {BUY:'#2ebd85', SELL:'#f6465d', NEUTRAL:'#8b8f99'};
 let tf = localStorage.getItem('tf') || 'H1';
-let chart, busy = false, lastData = null;
+let chart, busy = false, pending = false, lastData = null;
 
 function esc(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML}
 function fmt(n,d=2){return (n===null||n===undefined||isNaN(n))?'—':Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
@@ -392,15 +392,18 @@ async function api(path, opt){
 }
 
 async function load(){
-  if(busy) return; busy = true;
+  if(busy){ pending = true; return; } busy = true;
   const btn = $('refresh'); btn.disabled = true; btn.textContent = 'កំពុងទាញ...';
   try{
     render(await api('/api/analysis?tf=' + tf));
   }catch(e){
     $('banners').innerHTML = `<div class="banner err">${esc(String(e.message||e))}</div>`;
     if(!lastData) $('price').innerHTML = '<span class="err">មិនអាចទាញទិន្នន័យ</span>';
+    $('mktTxt').textContent = 'មិនអាចភ្ជាប់ប្រភពទិន្នន័យ';
+    $('mkt').querySelector('.dot').className = 'dot off';
   }
   busy = false; btn.disabled = false; btn.textContent = 'ធ្វើបច្ចុប្បន្នភាព';
+  if(pending){ pending = false; load(); }
 }
 
 async function loadNews(){

@@ -3,142 +3,448 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>XAUUSD Analyzer</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<meta name="color-scheme" content="dark">
+<title>XAUUSD · ម៉ាស៊ីនវិភាគបច្ចេកទេស</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
-  :root{--bg:#0e0f12;--card:#17191f;--line:#262a33;--text:#e8e6e1;--muted:#8b8f99;--gold:#d4af37;--buy:#2ebd85;--sell:#f6465d;--neutral:#8b8f99}
+  :root{
+    --bg:#0e0f12;--card:#17191f;--card2:#12141a;--line:#262a33;--line2:#323744;
+    --text:#e8e6e1;--muted:#8b8f99;--gold:#d4af37;--gold-soft:rgba(212,175,55,.12);
+    --buy:#2ebd85;--sell:#f6465d;--neutral:#8b8f99;
+    --font:"Kantumruy Pro","Noto Sans Khmer","Khmer OS",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans Khmer",sans-serif;line-height:1.5}
-  .wrap{max-width:960px;margin:0 auto;padding:16px}
-  header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-  h1{margin:0;font-size:20px;color:var(--gold);letter-spacing:.5px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-  .price{font-size:34px;font-weight:700}
-  .chg{font-size:14px;margin-left:8px}
-  .up{color:var(--buy)}.down{color:var(--sell)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:12px}
-  .stat{background:#12141a;border:1px solid var(--line);border-radius:10px;padding:10px}
-  .stat small{color:var(--muted);display:block;font-size:12px}
-  .stat b{font-size:16px}
-  button,select{background:var(--gold);color:#111;border:0;border-radius:10px;padding:10px 16px;font-weight:600;font-size:14px;cursor:pointer}
-  select{background:var(--card);color:var(--text);border:1px solid var(--line)}
-  button:disabled{opacity:.5;cursor:wait}
-  .signal{font-size:28px;font-weight:800}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.65;font-size:15px}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+  h1,h2,h3{margin:0;font-weight:600}
+  h1{font-size:21px;color:var(--gold);letter-spacing:.2px}
+  h2{font-size:16px;color:var(--text)}
+  h3{font-size:13px;color:var(--muted);font-weight:500;margin:16px 0 6px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .brand small{display:block;color:var(--muted);font-size:12.5px}
+  .head-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);border-radius:999px;padding:3px 12px;font-size:12.5px;color:var(--muted);background:var(--card2)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--neutral)}
+  .dot.on{background:var(--buy)}.dot.off{background:var(--sell)}
+  button{font-family:inherit}
+  .btn{background:var(--gold);color:#111;border:0;border-radius:10px;padding:9px 16px;font-weight:600;font-size:14px;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--gold);border:1px solid var(--gold)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+  .tab{background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:9px;padding:6px 16px;font-size:14px;cursor:pointer;font-weight:500}
+  .tab[aria-pressed=true]{color:#111;background:var(--gold);border-color:var(--gold)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  .card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .muted{color:var(--muted)}.small{font-size:12.5px}
+  .banner{border:1px solid #5a4a14;background:rgba(212,175,55,.08);color:#e6cf7a;border-radius:10px;padding:8px 14px;margin-bottom:10px;font-size:13.5px}
+  .banner.err{border-color:#6b2a33;background:rgba(246,70,93,.08);color:#f59aa7}
+  .price{font-size:38px;font-weight:700;letter-spacing:-.5px}
+  .chg{font-size:15px;margin-left:10px;font-weight:600}
+  .up,.bull{color:var(--buy)}.down,.bear{color:var(--sell)}
   .BUY{color:var(--buy)}.SELL{color:var(--sell)}.NEUTRAL{color:var(--neutral)}
-  .bar{height:8px;background:#12141a;border-radius:6px;overflow:hidden;margin:6px 0 12px}
-  .bar>i{display:block;height:100%;background:var(--gold)}
-  ul{margin:6px 0 0;padding-left:20px}
-  li{margin:3px 0}
-  h3{margin:14px 0 4px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
-  .news a{color:var(--text);text-decoration:none}
-  .news a:hover{color:var(--gold)}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:6px;color:var(--muted);font-size:12.5px}
+  .meta b{color:var(--text);font-weight:500}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:14px}
+  .stat{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .stat small{color:var(--muted);display:block;font-size:12px}
+  .stat b{font-size:16px;font-variant-numeric:tabular-nums}
+  .stat .sub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+  .two{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:22px}
+  @media(max-width:820px){.two{grid-template-columns:1fr}}
+  .gauge{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 0}
+  .gauge svg{width:190px;height:190px}
+  .gauge .ring-bg{stroke:var(--line2)}
+  .gauge .sigword{font-size:30px;font-weight:700;margin-top:-2px;line-height:1.2}
+  .gauge .sigsub{font-size:13px;color:var(--muted)}
+  .bars{width:100%;margin-top:12px}
+  .barrow{display:grid;grid-template-columns:62px 1fr 38px;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);margin:4px 0}
+  .bar{height:7px;background:var(--card2);border-radius:5px;overflow:hidden}
+  .bar>i{display:block;height:100%}
+  .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;justify-content:center}
+  .tag{border:1px solid var(--line2);border-radius:8px;padding:2px 10px;font-size:12.5px;background:var(--card2)}
+  .tag.gold{border-color:#5a4a14;color:var(--gold);background:var(--gold-soft)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:12.5px;white-space:nowrap}
+  td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:0}
+  .scroll{overflow-x:auto}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .lvl-buy{border-left:3px solid var(--buy)}.lvl-sell{border-left:3px solid var(--sell)}
+  .stat.lvl-buy,.stat.lvl-sell{border-radius:4px 10px 10px 4px}
+  .ok{color:var(--buy);font-weight:700}.no{color:#4b4f59}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:3px 0}
+  .reasons li{font-size:14px}
+  .ind{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .ind .nm{color:var(--muted);font-size:12.5px;display:flex;justify-content:space-between}
+  .ind .vl{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+  .ind .tx{font-size:12.5px;color:var(--muted)}
+  .ind .ex{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;color:var(--muted);margin-top:4px}
+  .ind .ex b{color:var(--text);font-weight:500}
+  .ind .st{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--line2)}
+  .ind .st.bull{background:var(--buy)}.ind .st.bear{background:var(--sell)}
+  .chartbox{position:relative;height:340px}
+  .news a{color:var(--text);text-decoration:none}.news a:hover{color:var(--gold)}
   .news li{font-size:14px}
-  .news small{color:var(--muted)}
-  .disclaimer{font-size:12px;color:var(--muted);text-align:center;margin-top:20px}
+  .disclaimer{font-size:12.5px;color:var(--muted);text-align:center;margin-top:22px}
   .err{color:var(--sell)}
+  details summary{cursor:pointer;color:var(--gold);font-size:13.5px;margin-top:10px}
+  .pill{display:inline-block;border-radius:6px;padding:0 8px;font-size:12.5px;font-weight:600;border:1px solid currentColor}
+  @media (prefers-reduced-motion:no-preference){.ring-fg{transition:stroke-dasharray .6s ease}}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>XAUUSD · ការវិភាគមាស</h1>
-    <div style="display:flex;gap:8px">
-      <select id="lang">
-        <option value="Khmer">ខ្មែរ</option>
-        <option value="English">English</option>
-      </select>
-      <button id="go">វិភាគដោយ AI</button>
+    <div class="brand">
+      <h1>XAUUSD · ម៉ាស៊ីនវិភាគបច្ចេកទេសមាស</h1>
+      <small>គណនាដោយរូបមន្ត និងច្បាប់កំណត់ទុកក្នុង Python ‒ មិនប្រើ AI</small>
+    </div>
+    <div class="head-actions">
+      <span class="chip" id="mkt"><span class="dot"></span><span id="mktTxt">កំពុងផ្ទុក...</span></span>
+      <button class="btn" id="refresh">ធ្វើបច្ចុប្បន្នភាព</button>
     </div>
   </header>
 
-  <div class="card">
+  <div class="tabs" id="tabs" role="group" aria-label="ជ្រើសរើស Timeframe"></div>
+  <div id="banners"></div>
+
+  <section class="card" aria-label="តម្លៃបច្ចុប្បន្ន">
     <div><span class="price" id="price">--</span><span class="chg" id="chg"></span></div>
+    <div class="meta" id="meta"></div>
     <div class="grid" id="stats"></div>
-  </div>
+  </section>
 
-  <div class="card"><canvas id="chart" height="110"></canvas></div>
+  <section class="card" aria-label="តារាងតម្លៃ">
+    <div class="card-head"><h2>តារាងតម្លៃ</h2><span class="muted small" id="chartNote"></span></div>
+    <div class="chartbox"><canvas id="chart"></canvas></div>
+  </section>
 
-  <div class="card" id="aiCard" style="display:none"></div>
+  <section class="card" id="engine" aria-label="ម៉ាស៊ីនវិភាគបច្ចេកទេស">
+    <div class="card-head"><h2>ម៉ាស៊ីនវិភាគបច្ចេកទេស</h2><span class="muted small" id="updated"></span></div>
+    <div class="two">
+      <div>
+        <div class="gauge" id="gauge"></div>
+        <div class="bars" id="bars"></div>
+        <div class="tags" id="tags"></div>
+      </div>
+      <div>
+        <h3 style="margin-top:0">ចំណុចចូល / ចំណុចកាត់ខាត / ចំណុចយកចំណេញ</h3>
+        <div id="setup"></div>
+        <h3>តំបន់គាំទ្រ និងទប់ទល់ ជិតបំផុត</h3>
+        <div class="kv" id="nearest"></div>
+        <h3>ការបញ្ជាក់ Multi-Timeframe</h3>
+        <div id="mtfText" class="small"></div>
+      </div>
+    </div>
+    <h3>ការពន្យល់សញ្ញា</h3>
+    <p id="summary" style="margin:0 0 8px"></p>
+    <ul class="reasons" id="reasons"></ul>
+    <div class="scroll" style="margin-top:12px"><table id="conds"></table></div>
+    <p class="muted small" id="scoreNote" style="margin:10px 0 0"></p>
+  </section>
 
-  <div class="card news">
-    <h3 style="margin-top:0">ព័ត៌មានថ្មីៗ</h3>
+  <section class="card" aria-label="Multi-Timeframe">
+    <div class="card-head"><h2>វិភាគច្រើន Timeframe</h2><span class="muted small" id="mtfHead"></span></div>
+    <div class="scroll"><table id="mtf"></table></div>
+  </section>
+
+  <section class="card" aria-label="Indicator">
+    <div class="card-head"><h2>ផ្ទាំង Indicator លម្អិត</h2><span class="muted small" id="indHead"></span></div>
+    <div class="grid" id="inds" style="margin-top:0"></div>
+  </section>
+
+  <section class="card" aria-label="Support Resistance">
+    <div class="card-head"><h2>កម្រិតគាំទ្រ និងទប់ទល់</h2><span class="muted small" id="lvlHead"></span></div>
+    <div class="two" style="grid-template-columns:1fr 1fr">
+      <div class="scroll"><table id="lvls"></table></div>
+      <div class="scroll"><table id="pivots"></table></div>
+    </div>
+    <p class="muted small" id="lvlNotes" style="margin:10px 0 0"></p>
+  </section>
+
+  <section class="card" aria-label="ប្រវត្តិសញ្ញា">
+    <div class="card-head"><h2>ប្រវត្តិសញ្ញា</h2><span class="muted small">គណនាពីទិន្នន័យ candle ពិត (ការប្តូរសញ្ញា)</span></div>
+    <div class="scroll"><table id="hist"></table></div>
+  </section>
+
+  <section class="card" aria-label="Backtest">
+    <div class="card-head">
+      <h2>លទ្ធផល Backtest ប្រវត្តិសាស្ត្រ</h2>
+      <button class="btn ghost" id="runBt">ដំណើរការ Backtest</button>
+    </div>
+    <div id="bt" class="muted">ចុច «ដំណើរការ Backtest» ដើម្បីសាកល្បងច្បាប់សញ្ញាលើទិន្នន័យប្រវត្តិសាស្ត្រនៃ Timeframe ដែលបានជ្រើស។ ស្ថិតិទាំងអស់គណនាពីទិន្នន័យពិត មិនត្រូវបានបង្កើតឡើងទេ។</div>
+  </section>
+
+  <section class="card news" aria-label="ព័ត៌មាន">
+    <div class="card-head"><h2>ព័ត៌មានថ្មីៗ</h2><span class="muted small">ចំណងជើងពី Google News (ភាសាអង់គ្លេស)</span></div>
     <ul id="news"></ul>
-  </div>
+  </section>
 
-  <p class="disclaimer">ព័ត៌មានសម្រាប់ជាឯកសារយោងប៉ុណ្ណោះ មិនមែនជាដំបូន្មានហិរញ្ញវត្ថុទេ។ ការ trade មានហានិភ័យ។</p>
+  <p class="disclaimer">ព័ត៌មាននេះសម្រាប់ជាឯកសារយោងប៉ុណ្ណោះ មិនមែនជាដំបូន្មានហិរញ្ញវត្ថុទេ។ ពិន្ទុជាពិន្ទុលក្ខខណ្ឌបច្ចេកទេស មិនមែនប្រូបាប៊ីលីតេឈ្នះទេ។ ការ trade មានហានិភ័យខ្ពស់ សូមប្រើ Stop Loss និងគ្រប់គ្រងហានិភ័យ។</p>
 </div>
 
 <script>
 const $ = id => document.getElementById(id);
-let chart;
+const TFS = ['M5','M15','M30','H1','H4','D1'];
+const SIG = {BUY:'ទិញ', SELL:'លក់', NEUTRAL:'អព្យាក្រឹត'};
+const COL = {BUY:'#2ebd85', SELL:'#f6465d', NEUTRAL:'#8b8f99'};
+let tf = localStorage.getItem('tf') || 'H1';
+let chart, busy = false, lastData = null;
 
 function esc(s){const d=document.createElement('div');d.textContent=s??'';return d.innerHTML}
+function fmt(n,d=2){return (n===null||n===undefined||isNaN(n))?'—':Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function when(iso){
+  if(!iso) return '—';
+  const t = new Date(iso);
+  return t.toLocaleString('en-GB',{timeZone:'Asia/Phnom_Penh',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}) + ' (ភ្នំពេញ)';
+}
+function ago(sec){
+  if(sec===null||sec===undefined) return '—';
+  if(sec<90) return Math.round(sec)+' វិនាទីមុន';
+  if(sec<5400) return Math.round(sec/60)+' នាទីមុន';
+  if(sec<172800) return Math.round(sec/3600)+' ម៉ោងមុន';
+  return Math.round(sec/86400)+' ថ្ងៃមុន';
+}
+const sigTag = s => `<span class="${esc(s)}"><b>${esc(s)}</b> · ${SIG[s]||''}</span>`;
+const dirTxt = d => ({bull:'ឡើង',bear:'ចុះ',mixed:'ច្របូកច្របល់'}[d]||'—');
+const dirCls = d => d==='bull'?'bull':(d==='bear'?'bear':'muted');
 
-async function loadMarket(){
-  try{
-    const r = await fetch('/api/market');
-    if(!r.ok) throw new Error((await r.json()).detail||r.status);
-    const d = await r.json();
-    const s = d.snapshot;
-    $('price').textContent = '$' + s.price.toLocaleString();
-    $('chg').textContent = (s.change_24h_pct>=0?'+':'') + s.change_24h_pct + '% (24h)';
-    $('chg').className = 'chg ' + (s.change_24h_pct>=0?'up':'down');
-    const items = [['RSI',s.rsi],['MACD',s.macd],['Signal',s.macd_signal],['EMA20',s.ema20],['EMA50',s.ema50],['ATR',s.atr]];
-    $('stats').innerHTML = items.map(([k,v])=>`<div class="stat"><small>${k}</small><b>${v}</b></div>`).join('');
-    drawChart(d.chart);
-    $('news').innerHTML = d.news.map(n=>`<li><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a></li>`).join('');
-  }catch(e){
-    $('price').innerHTML = '<span class="err">' + esc(String(e.message||e)) + '</span>';
-  }
+function buildTabs(){
+  $('tabs').innerHTML = TFS.map(t=>`<button class="tab" data-tf="${t}" aria-pressed="${t===tf}">${t}</button>`).join('');
+  $('tabs').querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{tf=b.dataset.tf;localStorage.setItem('tf',tf);buildTabs();load();resetBt()}));
 }
 
-function drawChart(c){
-  const ctx = $('chart');
+function gauge(e){
+  const C=2*Math.PI*54, s=Math.max(0,Math.min(100,e.score||0)), col=COL[e.signal]||COL.NEUTRAL;
+  return `<svg viewBox="0 0 140 140" role="img" aria-label="ពិន្ទុបច្ចេកទេស ${fmt(s,0)} ក្នុង 100">
+    <circle class="ring-bg" cx="70" cy="70" r="54" fill="none" stroke-width="10"/>
+    <circle class="ring-fg" cx="70" cy="70" r="54" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round"
+      stroke-dasharray="${(C*s/100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 70 70)"/>
+    <text x="70" y="72" text-anchor="middle" font-size="34" font-weight="700" fill="#e8e6e1" font-family="inherit">${fmt(s,0)}</text>
+    <text x="70" y="94" text-anchor="middle" font-size="11" fill="#8b8f99" font-family="inherit">ពិន្ទុបច្ចេកទេស /100</text>
+  </svg>
+  <div class="sigword ${esc(e.signal)}">${esc(e.signal)} · ${SIG[e.signal]}</div>
+  <div class="sigsub">${e.mtf_override?`Signal ${esc(e.tf_signal)} ត្រូវបានប្តូរជា NEUTRAL ដោយ MTF`:`ពិន្ទុ ${e.side==='bull'?'ឡើង':'ចុះ'} · កម្រិតសញ្ញា ${fmt(e.threshold,0)}`}</div>`;
+}
+
+function renderBars(e){
+  const row=(n,v,c)=>`<div class="barrow"><span>${n}</span><div class="bar"><i style="width:${Math.min(100,v)}%;background:${c}"></i></div><span>${fmt(v,0)}</span></div>`;
+  $('bars').innerHTML = row('ឡើង',e.bull_score,COL.BUY)+row('ចុះ',e.bear_score,COL.SELL);
+}
+
+function renderSetup(s, e){
+  if(!s){
+    $('setup').innerHTML = `<div class="muted">មិនមាន Setup ‒ សញ្ញាបច្ចុប្បន្នគឺ <b>NEUTRAL</b>។ កម្រិត Entry/SL/TP បង្ហាញតែពេលមានសញ្ញា BUY ឬ SELL ដែលបានបញ្ជាក់ប៉ុណ្ណោះ។</div>`;
+    return;
+  }
+  const cls = s.side==='BUY'?'lvl-buy':'lvl-sell';
+  const box=(k,v,sub,c='')=>`<div class="stat ${c}"><small>${k}</small><b>${fmt(v)}</b>${sub?`<span class="sub">${sub}</span>`:''}</div>`;
+  let h = `<div class="grid" style="margin-top:0">
+    ${box('តម្លៃចូល (Entry)',s.entry,esc(s.side)+' · candle បិទចុងក្រោយ',cls)}
+    ${box('ចំណុចកាត់ខាត (Stop Loss)',s.stop_loss,'ATR×'+fmt(s.sl_atr_mult,1)+' = '+fmt(s.risk),'lvl-sell')}
+    ${s.targets.map(t=>box('ចំណុចយកចំណេញ TP '+t.rr+'R',t.price,'R:R 1:'+t.rr+' · +'+fmt(t.reward),'lvl-buy')).join('')}
+  </div>
+  <p class="small" style="margin:10px 0 0"><b>ហានិភ័យ/ផលចំណេញ (R:R):</b> ${esc(s.rr_text)} &nbsp;·&nbsp; <b>ស្ថានភាព:</b>
+    <span class="pill ${s.valid?'up':'down'}">${esc(s.status_label)}</span></p>`;
+  if(s.invalidation.length) h += `<ul class="small">${s.invalidation.map(x=>`<li class="down">${esc(x)}</li>`).join('')}</ul>`;
+  if(s.notes.length) h += `<ul class="small">${s.notes.map(x=>`<li style="color:#e6cf7a">${esc(x)}</li>`).join('')}</ul>`;
+  h += `<details><summary>ច្បាប់ដែលធ្វើឲ្យ Setup អស់សុពលភាព</summary><ul class="small">${s.invalidation_rules.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></details>`;
+  $('setup').innerHTML = h;
+}
+
+function renderNearest(lv, price){
+  if(!lv){ $('nearest').innerHTML='<div class="muted">មិនមានទិន្នន័យគ្រប់គ្រាន់</div>'; return; }
+  const one=(name,x,c)=>x?`<div class="stat ${c}"><small>${name}</small><b>${fmt(x.price)}</b>
+     <span class="sub">ឆ្ងាយ ${fmt(x.distance)} (${fmt(x.distance_pct,2)}%) · ${fmt(x.distance_atr,1)}×ATR</span>
+     <span class="sub">${esc(x.source)}${x.touches?` · ប៉ះ ${x.touches} ដង`:''}</span></div>`
+    :`<div class="stat"><small>${name}</small><b>—</b><span class="sub">មិនមានកម្រិតដែលបានបញ្ជាក់</span></div>`;
+  let h = one('តំបន់ទប់ទល់ (Resistance)',lv.resistance,'lvl-sell')+one('តំបន់គាំទ្រ (Support)',lv.support,'lvl-buy');
+  const bo = lv.breakout, bd = lv.breakdown;
+  h += `<div class="stat"><small>Breakout / Breakdown</small><b class="${bo?'up':bd?'down':'muted'}">${bo?'Breakout ✓':bd?'Breakdown ✓':'មិនមាន'}</b>
+     <span class="sub">${bo?`ទម្លុះ ${fmt(bo.level)} (បិទ ${bo.confirm_bars} candle) · ${bo.bars_ago} candle មុន`:bd?`ទម្លុះ ${fmt(bd.level)} (បិទ ${bd.confirm_bars} candle) · ${bd.bars_ago} candle មុន`:'មិនទាន់មានការបញ្ជាក់'}</span></div>`;
+  $('nearest').innerHTML = h;
+}
+
+function renderConds(e){
+  const side = e.side;
+  $('conds').innerHTML = `<tr><th>លក្ខខណ្ឌ</th><th>${side==='bull'?'លក្ខខណ្ឌទិញ':'លក្ខខណ្ឌលក់'}</th><th class="n">ឡើង</th><th class="n">ចុះ</th><th class="n">ទម្ងន់</th></tr>`
+   + e.conditions.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(side==='bull'?c.bull_text:c.bear_text)}</td>
+      <td class="n ${c.bull_ok?'ok':'no'}">${c.bull_ok?'✓':'✗'}</td><td class="n ${c.bear_ok?'ok':'no'}">${c.bear_ok?'✓':'✗'}</td><td class="n">${fmt(c.weight,0)}</td></tr>`).join('');
+}
+
+function renderMtf(m){
+  const o = m.overall;
+  $('mtfHead').textContent = o.label;
+  $('mtfText').innerHTML = `<b class="${dirCls(o.direction)}">${esc(o.label)}</b><br>${esc(o.text)}`;
+  $('mtf').innerHTML = `<tr><th>TF</th><th>និន្នាការ</th><th class="n">RSI</th><th>MACD</th><th>EMA</th><th class="n">ADX</th><th class="n">ពិន្ទុ</th><th>សញ្ញា</th></tr>` +
+   m.rows.map(r=> !r.available
+     ? `<tr><td><b>${r.tf}</b></td><td colspan="7" class="down small">${esc(r.error)}</td></tr>`
+     : `<tr><td><b>${r.tf}</b>${r.tf===tf?' <span class="pill" style="color:var(--gold)">ជ្រើស</span>':''}</td>
+        <td class="${dirCls(r.trend)}">${dirTxt(r.trend)}</td><td class="n">${fmt(r.rsi,1)}</td>
+        <td class="${r.macd_state==='bull'?'up':r.macd_state==='bear'?'down':'muted'}">${fmt(r.macd,3)} / ${fmt(r.macd_signal,3)}</td>
+        <td class="${dirCls(r.ema_alignment)}">${esc(r.ema_alignment_label||'—')}</td><td class="n">${fmt(r.adx,1)}</td>
+        <td class="n">${fmt(r.score,0)}</td>
+        <td>${sigTag(r.signal)}${r.gated?`<div class="small muted">${esc((r.gate_reasons||[])[0]||'')}</div>`:''}</td></tr>`).join('');
+}
+
+function renderInds(list, meta){
+  $('indHead').textContent = `Timeframe ${meta.timeframe} · candle បិទចុងក្រោយ ${when(meta.last_candle_time)}`;
+  $('inds').innerHTML = list.map(i=>`<div class="ind"><div class="nm"><span>${esc(i.name)}</span><span class="st ${i.state||''}"></span></div>
+    <div class="vl">${fmt(i.value, i.key==='macd'?3:(i.key==='rsi'||i.key==='adx'||i.key==='stochrsi')?1:2)}</div>
+    <div class="tx">${esc(i.text)}</div>
+    ${i.extra?`<div class="ex">${Object.entries(i.extra).map(([k,v])=>`<span>${esc(k)} <b>${fmt(v,2)}</b></span>`).join('')}</div>`:''}</div>`).join('');
+}
+
+function renderLevels(lv){
+  if(!lv){ $('lvls').innerHTML=''; $('pivots').innerHTML=''; $('lvlNotes').textContent='មិនមានទិន្នន័យ'; return; }
+  $('lvlHead').textContent = 'គណនាពី swing high/low (ប៉ះ ≥ 2 ដង) និង Pivot D1';
+  $('lvls').innerHTML = `<tr><th>ប្រភេទ</th><th class="n">តម្លៃ</th><th class="n">ប៉ះ</th><th class="n">ចម្ងាយ</th></tr>` +
+    (lv.swing_levels.length ? lv.swing_levels.map(x=>`<tr><td class="${x.kind==='resistance'?'down':'up'}">${x.kind==='resistance'?'ទប់ទល់':'គាំទ្រ'}</td><td class="n">${fmt(x.price)}</td><td class="n">${x.touches}</td><td class="n">${fmt(x.distance)}</td></tr>`).join('')
+      : `<tr><td colspan="4" class="muted">មិនមានកម្រិត swing ដែលបានបញ្ជាក់</td></tr>`);
+  const p = lv.pivots;
+  $('pivots').innerHTML = p ? `<tr><th>Pivot (Classic · D1)</th><th class="n">តម្លៃ</th></tr>` +
+    ['R2','R1','P','S1','S2'].map(k=>`<tr><td>${k}</td><td class="n">${fmt(p[k])}</td></tr>`).join('')
+    : `<tr><td class="muted">មិនមានទិន្នន័យ D1 សម្រាប់ Pivot</td></tr>`;
+  $('lvlNotes').textContent = (lv.notes||[]).join(' · ');
+}
+
+function renderHist(h){
+  $('hist').innerHTML = `<tr><th>ពេលវេលា (candle)</th><th>សញ្ញា</th><th class="n">ពិន្ទុ</th><th class="n">តម្លៃ</th></tr>` +
+   (h.length? h.map(x=>`<tr><td>${when(x.time)}</td><td>${sigTag(x.signal)}</td><td class="n">${fmt(x.score,0)}</td><td class="n">${fmt(x.price)}</td></tr>`).join('')
+     : `<tr><td colspan="4" class="muted">មិនទាន់មានប្រវត្តិ</td></tr>`);
+}
+
+function drawChart(c, lv){
+  if(!c) return;
+  const n = c.close.length, line = v => Array(n).fill(v);
+  const ds = [
+    {label:'Close',data:c.close,borderColor:'#d4af37',borderWidth:2,pointRadius:0,tension:.15},
+    {label:'EMA20',data:c.ema20,borderColor:'#5b9cf5',borderWidth:1.2,pointRadius:0,tension:.15},
+    {label:'EMA50',data:c.ema50,borderColor:'#b07cf5',borderWidth:1.2,pointRadius:0,tension:.15},
+    {label:'BB ខាងលើ',data:c.bb_up,borderColor:'rgba(139,143,153,.55)',borderWidth:1,borderDash:[3,3],pointRadius:0},
+    {label:'BB ខាងក្រោម',data:c.bb_low,borderColor:'rgba(139,143,153,.55)',borderWidth:1,borderDash:[3,3],pointRadius:0}
+  ];
+  if(lv && lv.resistance) ds.push({label:'Resistance',data:line(lv.resistance.price),borderColor:'#f6465d',borderWidth:1.2,borderDash:[6,4],pointRadius:0});
+  if(lv && lv.support) ds.push({label:'Support',data:line(lv.support.price),borderColor:'#2ebd85',borderWidth:1.2,borderDash:[6,4],pointRadius:0});
   if(chart) chart.destroy();
-  chart = new Chart(ctx,{
-    type:'line',
-    data:{labels:c.labels,datasets:[
-      {label:'Close',data:c.close,borderColor:'#d4af37',borderWidth:2,pointRadius:0,tension:.2},
-      {label:'EMA20',data:c.ema20,borderColor:'#5b9cf5',borderWidth:1,pointRadius:0,tension:.2},
-      {label:'EMA50',data:c.ema50,borderColor:'#b07cf5',borderWidth:1,pointRadius:0,tension:.2}
-    ]},
-    options:{responsive:true,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{labels:{color:'#8b8f99'}}},
-      scales:{x:{ticks:{color:'#8b8f99',maxTicksLimit:8},grid:{color:'#1f222a'}},
-              y:{ticks:{color:'#8b8f99'},grid:{color:'#1f222a'}}}}
-  });
+  chart = new Chart($('chart'),{type:'line',data:{labels:c.labels,datasets:ds},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{color:'#8b8f99',boxWidth:18,font:{size:11}}},tooltip:{callbacks:{label:x=>x.dataset.label+': '+fmt(x.parsed.y)}}},
+      scales:{x:{ticks:{color:'#8b8f99',maxTicksLimit:8},grid:{color:'#1f222a'}},y:{ticks:{color:'#8b8f99'},grid:{color:'#1f222a'}}}}});
 }
 
-async function runAI(){
-  const btn = $('go'), card = $('aiCard');
-  btn.disabled = true; btn.textContent = 'កំពុងវិភាគ...';
-  card.style.display = 'block'; card.innerHTML = '<span style="color:var(--muted)">កំពុងអានព័ត៌មាន និងទិន្នន័យ...</span>';
+function renderTop(d){
+  const m = d.meta, p = d.price;
+  $('price').textContent = p.last==null ? '—' : '$' + fmt(p.last);
+  const ch = p.change_24h_pct;
+  $('chg').textContent = ch==null ? '24h: មិនមាន' : (ch>=0?'+':'') + fmt(ch,2) + '% (24h)';
+  $('chg').className = 'chg ' + (ch==null?'muted':ch>=0?'up':'down');
+  $('meta').innerHTML = `<span>ប្រភពទិន្នន័យ: <b>${esc(m.provider)}</b></span><span>ឧបករណ៍: <b>${esc(m.instrument)}</b> (${esc(m.symbol)})</span>
+    <span>Timeframe: <b>${esc(m.timeframe)}</b></span><span>តម្លៃថ្មីបំផុត: <b>${when(p.time)}</b></span>
+    <span>ទិន្នន័យចាស់: <b>${ago(m.data_age_sec)}</b></span><span>ទាញទិន្នន័យ: <b>${when(m.fetched_at)}</b></span>`;
+  const ind = Object.fromEntries(d.indicators.map(i=>[i.key,i]));
+  const last = d.chart ? d.chart : null;
+  const items = [['RSI',ind.rsi&&ind.rsi.value,1],['MACD',ind.macd&&ind.macd.value,3],['Signal',ind.macd&&ind.macd.extra&&ind.macd.extra.Signal,3],
+    ['EMA20',ind.ema20&&ind.ema20.value,2],['EMA50',ind.ema50&&ind.ema50.value,2],['ATR',ind.atr&&ind.atr.value,2],['ADX',ind.adx&&ind.adx.value,1]];
+  $('stats').innerHTML = items.map(([k,v,dg])=>`<div class="stat"><small>${k}</small><b>${fmt(v,dg)}</b></div>`).join('');
+  $('mktTxt').textContent = (m.market_open?'ទីផ្សារបើក':'ទីផ្សារបិទ') + ' · ' + m.provider;
+  $('mkt').querySelector('.dot').className = 'dot ' + (m.market_open?'on':'off');
+  const b=[];
+  (m.warnings||[]).forEach(w=>b.push(`<div class="banner">${esc(w)}</div>`));
+  if(p.note) b.push(`<div class="banner">${esc(p.note)}</div>`);
+  $('banners').innerHTML = b.join('');
+  $('chartNote').textContent = `${m.timeframe} · ${d.chart?d.chart.close.length:0} candle ចុងក្រោយ`;
+}
+
+function render(d){
+  lastData = d;
+  renderTop(d);
+  const e = d.engine;
+  $('gauge').innerHTML = gauge(e);
+  renderBars(e);
+  $('tags').innerHTML = (d.trend&&d.trend.tags||[]).map((t,i)=>`<span class="tag ${i===0?'gold':''}">${esc(t)}</span>`).join('')
+    + (d.trend&&d.trend.atr_ratio!=null?`<span class="tag">ATR ratio ${fmt(d.trend.atr_ratio,2)}</span>`:'');
+  renderSetup(d.setup, e);
+  renderNearest(d.levels, d.price.last);
+  $('summary').textContent = e.summary;
+  $('reasons').innerHTML = e.reasons.map(r=>`<li>${esc(r)}</li>`).join('');
+  renderConds(e);
+  $('scoreNote').textContent = e.score_note + ` · ទិន្នន័យ ${d.meta.candles} candle បិទ · ${d.meta.engine}`;
+  $('updated').textContent = 'ធ្វើបច្ចុប្បន្នភាពចុងក្រោយ: ' + when(d.meta.generated_at);
+  renderMtf(d.mtf);
+  renderInds(d.indicators, d.meta);
+  renderLevels(d.levels);
+  renderHist(d.history);
+  drawChart(d.chart, d.levels);
+}
+
+async function api(path, opt){
+  const r = await fetch(path, opt);
+  let j = null; try{ j = await r.json(); }catch(_){}
+  if(!r.ok) throw new Error((j && j.detail) || ('កំហុស HTTP ' + r.status));
+  return j;
+}
+
+async function load(){
+  if(busy) return; busy = true;
+  const btn = $('refresh'); btn.disabled = true; btn.textContent = 'កំពុងទាញ...';
   try{
-    const r = await fetch('/api/analyze?lang=' + encodeURIComponent($('lang').value), {method:'POST'});
-    const d = await r.json();
-    if(!r.ok) throw new Error(d.detail||r.status);
-    const lv = d.levels||{};
-    card.innerHTML = `
-      <div class="signal ${esc(d.signal)}">${esc(d.signal)}</div>
-      <small style="color:var(--muted)">Confidence ${esc(d.confidence)}%</small>
-      <div class="bar"><i style="width:${Number(d.confidence)||0}%"></i></div>
-      <p>${esc(d.summary)}</p>
-      <h3>កត្តាសំខាន់</h3><ul>${(d.drivers||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
-      <h3>ហានិភ័យ</h3><ul>${(d.risks||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
-      <h3>កម្រិតតម្លៃ</h3>
-      <div class="grid">
-        <div class="stat"><small>Support</small><b>${esc(lv.support)}</b></div>
-        <div class="stat"><small>Resistance</small><b>${esc(lv.resistance)}</b></div>
-      </div>`;
+    render(await api('/api/analysis?tf=' + tf));
   }catch(e){
-    card.innerHTML = '<span class="err">' + esc(String(e.message||e)) + '</span>';
+    $('banners').innerHTML = `<div class="banner err">${esc(String(e.message||e))}</div>`;
+    if(!lastData) $('price').innerHTML = '<span class="err">មិនអាចទាញទិន្នន័យ</span>';
   }
-  btn.disabled = false; btn.textContent = 'វិភាគដោយ AI';
+  busy = false; btn.disabled = false; btn.textContent = 'ធ្វើបច្ចុប្បន្នភាព';
 }
 
-$('go').addEventListener('click', runAI);
-loadMarket();
-setInterval(loadMarket, 60000);
+async function loadNews(){
+  try{
+    const n = await api('/api/news');
+    $('news').innerHTML = n.length ? n.map(x=>`<li><a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title)}</a>${x.source?` <span class="muted small">‒ ${esc(x.source)}</span>`:''}</li>`).join('')
+      : '<li class="muted">មិនមានព័ត៌មាន ឬមិនអាចទាញបានពេលនេះ</li>';
+  }catch(_){ $('news').innerHTML = '<li class="muted">មិនអាចទាញព័ត៌មាន</li>'; }
+}
+
+function resetBt(){ $('bt').className='muted'; $('bt').textContent='ចុច «ដំណើរការ Backtest» ដើម្បីសាកល្បងច្បាប់សញ្ញាលើទិន្នន័យប្រវត្តិសាស្ត្រនៃ Timeframe ដែលបានជ្រើស។'; }
+
+function btBlock(name,b){
+  return `<td class="n"><b>${name}</b></td>`;
+}
+async function runBt(){
+  const btn=$('runBt'); btn.disabled=true; btn.textContent='កំពុងគណនា...';
+  $('bt').className=''; $('bt').innerHTML='<span class="muted">កំពុងរត់ Backtest...</span>';
+  try{
+    const r = await api('/api/backtest?tf=' + tf);
+    if(!r.ok){ $('bt').innerHTML = `<div class="banner">${esc(r.error||'Backtest បរាជ័យ')} (មាន ${r.candles??0} candle)</div>`; }
+    else{
+      const rows = [['ចំនួន Trade','trades',0],['Win Rate (%)','win_rate',1],['Profit Factor','profit_factor',2],['Net Profit (USD)','net_profit',2],
+        ['Max Drawdown (USD)','max_drawdown',2],['Max Drawdown (%)','max_drawdown_pct',2],['ចំណេញមធ្យម/Trade ឈ្នះ','avg_win',2],['ខាតមធ្យម/Trade ចាញ់','avg_loss',2],['Expectancy/Trade','expectancy',2]];
+      const cell=(b,k,d)=> b[k]===null||b[k]===undefined ? '—' : fmt(b[k],d);
+      const p = r.params;
+      $('bt').innerHTML = `<div class="meta" style="margin:0 0 10px"><span>Timeframe <b>${esc(r.timeframe)}</b></span><span>R:R <b>1:${r.rr}</b></span>
+        <span>ទិន្នន័យ <b>${esc(r.data.provider)}</b> · ${r.period.candles} candle</span><span>ចាប់ពី <b>${when(r.period.from)}</b></span><span>ដល់ <b>${when(r.period.to)}</b></span><span>កាត់ Train/Test <b>${when(r.period.split_time)}</b></span></div>
+        <div class="scroll"><table><tr><th>ស្ថិតិ</th><th class="n">Train</th><th class="n">Test (out-of-sample)</th><th class="n">សរុប</th></tr>
+        ${rows.map(([n,k,d])=>`<tr><td>${n}</td><td class="n">${cell(r.train,k,d)}</td><td class="n">${cell(r.test,k,d)}</td><td class="n">${cell(r.all,k,d)}</td></tr>`).join('')}</table></div>
+        <p class="small muted" style="margin:10px 0 0">ថ្លៃចំណាយ: spread ${p.spread} + slippage ${p.slippage_per_side}/ចំហៀង + commission $${p.commission_per_lot}/lot · ${p.lot} lot (${p.contract_oz} oz/lot) · SL = ATR×${p.sl_atr_mult} · កាន់អតិបរមា ${p.max_hold_bars} candle · ទុនដើម $${p.initial_balance}</p>
+        <ul class="small">${r.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>
+        <details><summary>Trade ចុងក្រោយ (${r.recent_trades.length})</summary><div class="scroll"><table><tr><th>ចូល</th><th>ចេញ</th><th>ទិស</th><th class="n">Entry</th><th class="n">Exit</th><th class="n">P/L (USD)</th><th>ហេតុផល</th></tr>
+        ${r.recent_trades.map(t=>`<tr><td>${when(t.entry_time)}</td><td>${when(t.exit_time)}</td><td class="${t.side}">${t.side}</td><td class="n">${fmt(t.entry)}</td><td class="n">${fmt(t.exit)}</td><td class="n ${t.pnl>=0?'up':'down'}">${fmt(t.pnl)}</td><td>${esc(t.reason)}</td></tr>`).join('')}</table></div></details>`;
+    }
+  }catch(e){ $('bt').innerHTML = `<div class="banner err">${esc(String(e.message||e))}</div>`; }
+  btn.disabled=false; btn.textContent='ដំណើរការ Backtest';
+}
+
+$('refresh').addEventListener('click', load);
+$('runBt').addEventListener('click', runBt);
+buildTabs(); load(); loadNews();
+setInterval(load, 60000);
+setInterval(loadNews, 600000);
 </script>
 </body>
 </html>
